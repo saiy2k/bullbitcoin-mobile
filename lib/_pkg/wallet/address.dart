@@ -1,10 +1,27 @@
 import 'package:bb_mobile/_model/address.dart';
 import 'package:bb_mobile/_model/wallet.dart';
 import 'package:bb_mobile/_pkg/error.dart';
+import 'package:bb_mobile/_pkg/wallet/create.dart';
 import 'package:bdk_flutter/bdk_flutter.dart' as bdk;
 
+/// syncWalletAddresses Logic:
+/// - sync wallet
+/// - loadAddresses
+///    - getAddresses 0-lastUnused+5
+/// - loadUtxos
+///    - listUnspent
+///      - match against active deposits
+///      - save active change
+///
+/// updateWalletAddressesByTxs Logic:
+/// - sync wallet
+/// - loadTransactions
+///    - check recipient address
+///    - load/match deposit and change + mark as used
+///    - if label exists, inherit
+
 class WalletAddress {
-  Future<(({int index, String address})?, Err?)> newDeposit({
+  Future<(({int index, String address})?, Err?)> newAddress({
     required bdk.Wallet bdkWallet,
   }) async {
     try {
@@ -46,6 +63,14 @@ class WalletAddress {
     return label;
   }
 
+  /// get last unused from bdk
+  /// existing Wallet wallet
+  /// new Wallet w
+  /// if wallet.lastUnused == null ; add lastUnused to w
+  /// if wallet.lastUnused == bdk last unused = return the wallet
+  /// else cycle through 0-lastUnused.index + 5 addresses and find matching elements in addresses = wallet.addresses
+  /// if match, ignore, if not match, add to addresses
+  /// return w.copyWith(addresses)
   Future<(Wallet?, Err?)> loadAddresses({
     required Wallet wallet,
     required bdk.Wallet bdkWallet,
@@ -64,7 +89,7 @@ class WalletAddress {
           ),
         );
       } else if (wallet.lastUnusedAddress!.index == addressLastUnused.index) {
-        // return (wallet, null);
+        return (wallet, null);
       }
       final List<Address> addresses = [...wallet.addresses];
       for (var i = 0; i <= addressLastUnused.index + 5; i++) {
@@ -110,6 +135,48 @@ class WalletAddress {
     }
   }
 
+  /// update: save lastChangeIndex in Wallet
+  Future<(Address?, Err?)> matchChange({
+    required Wallet wallet,
+    required String address,
+    required int startIndex,
+    required int stopIndex,
+  }) async {
+    final List<Address> addresses = [...wallet.addresses];
+
+    if (addresses.any((element) => element.address == address)) {
+      final x = addresses.firstWhere(
+        (element) => element.address == address,
+      );
+      return (x, null);
+    }
+
+    final (bdkChangeWallet, err) = await WalletCreate().loadPublicBdkChangeWallet(wallet);
+    if (err != null) {
+      return (null, Err(err.toString()));
+    }
+    for (var i = startIndex; i <= stopIndex; i++) {
+      final changeAddress = await bdkChangeWallet?.getAddress(
+        addressIndex: bdk.AddressIndex.peek(
+          index: i,
+        ),
+      );
+      if (changeAddress!.address == address) {
+        return (
+          Address(
+            address: changeAddress.address,
+            index: changeAddress.index,
+            type: AddressType.changeActive,
+          ),
+          null
+        );
+      }
+    }
+
+    return (null, Err('No change address matched!'));
+    // return label;
+  }
+
   Future<(Wallet?, Err?)> updateUtxos({
     required Wallet wallet,
     required bdk.Wallet bdkWallet,
@@ -127,15 +194,46 @@ class WalletAddress {
 
         late bool isRelated = false;
         late String txLabel = '';
-        final address = addresses.firstWhere(
-          (a) => a.address == addressStr,
-          orElse: () => Address(
+        final existing = addresses.indexWhere((element) => element.address == addressStr);
+        Address? address;
+        if (existing != -1) {
+          address = addresses[existing];
+        } else {
+          // does not exist
+          // cycle through and match against change
+          // could this be a recieve address that isnt in addresses?
+          // we assume this is NOT Recieve because we should always load extra recieve addresses
+          var changeErr;
+          // we can optimize the start/stop index by checking addresses for
+          // result = any (e)=> e.type == change
+          // use startIndex = result.index;
+          // stopIndex = startIndex + 5;
+          (address, changeErr) = await matchChange(
+            wallet: wallet,
             address: addressStr,
-            isReceive: true,
-            type: AddressType.changeActive,
-            index: -1, // do not use negative index
-          ),
-        );
+            startIndex: 0,
+            stopIndex: 25,
+          );
+          if (changeErr != null) {
+            // do not return here
+            return (
+              null,
+              Err(
+                changeErr.toString(),
+              ),
+            );
+          }
+        }
+        if (address == null) {
+          // do not return here
+          return (
+            null,
+            Err(
+              'No matching addresses',
+            ),
+          );
+        }
+
         final utxos = address.utxos?.toList() ?? [];
         for (final tx in wallet.transactions) {
           for (final addrs in tx.outAddresses ?? []) {
@@ -144,9 +242,10 @@ class WalletAddress {
               txLabel = tx.label ?? '';
             }
           }
+          // the above might not be the best way to update change label from a send tx
         }
-        // tjhe above might not be the best way to update change label from a send tx
 
+        // add unspent to utxos if a matching txid does not exist in utxos
         if (utxos.indexWhere((u) => u.outpoint.txid == unspent.outpoint.txid) == -1)
           utxos.add(unspent);
 
@@ -159,12 +258,12 @@ class WalletAddress {
           );
 
         if (updated.isReceive == null) updated = updated.copyWith(isReceive: updated.hasReceive());
-
-        addresses.removeWhere((a) => a.address == address.address);
+        // update addresses
+        addresses.removeWhere((a) => a.address == address?.address);
         addresses.add(updated);
       }
-      final w = wallet.copyWith(addresses: addresses);
 
+      final w = wallet.copyWith(addresses: addresses);
       return (w, null);
     } catch (e) {
       return (null, Err(e.toString()));

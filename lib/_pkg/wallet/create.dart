@@ -337,4 +337,31 @@ class WalletCreate {
       return (null, Err(e.toString()));
     }
   }
+
+  Future<(bdk.Wallet?, Err?)> loadPublicBdkChangeWallet(
+    Wallet wallet,
+  ) async {
+    try {
+      final network =
+          wallet.network == BBNetwork.Testnet ? bdk.Network.Testnet : bdk.Network.Bitcoin;
+
+      final internal = await bdk.Descriptor.create(
+        descriptor: wallet.internalPublicDescriptor,
+        network: network,
+      );
+
+      const dbConfig = bdk.DatabaseConfig.memory();
+
+      final bdkChangeWallet = await bdk.Wallet.create(
+        descriptor: internal,
+        changeDescriptor: internal,
+        network: network,
+        databaseConfig: dbConfig,
+      );
+
+      return (bdkChangeWallet, null);
+    } catch (e) {
+      return (null, Err(e.toString()));
+    }
+  }
 }

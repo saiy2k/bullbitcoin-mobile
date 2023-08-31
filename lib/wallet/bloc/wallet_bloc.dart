@@ -149,6 +149,8 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
 
     // if (!fromStorage) add(GetFirstAddress());
     add(GetBalance());
+    add(GetAddresses());
+    add(ListTransactions());
   }
 
   void _updateWallet(UpdateWallet event, Emitter<WalletState> emit) async {
@@ -199,7 +201,7 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
       ),
     );
 
-    add(ListTransactions());
+    // add(ListTransactions());
   }
 
   void _listTransactions(ListTransactions event, Emitter<WalletState> emit) async {
@@ -245,7 +247,7 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
       ),
     );
 
-    add(GetAddresses());
+    // add(GetAddresses());
   }
 
   void _getAddresses(GetAddresses event, Emitter<WalletState> emit) async {
@@ -293,6 +295,7 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
         return;
       }
     }
+    // add(UpdateWallet(wallet!));
     emit(
       state.copyWith(
         wallet: wallet,

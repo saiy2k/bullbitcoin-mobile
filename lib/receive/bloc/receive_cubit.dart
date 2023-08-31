@@ -219,7 +219,7 @@ class ReceiveCubit extends Cubit<ReceiveState> {
   void saveFinalInvoiceClicked() async {
     emit(state.copyWith(creatingInvoice: true, errCreatingInvoice: ''));
 
-    final (a, err) = await walletAddress.newDeposit(bdkWallet: walletBloc.state.bdkWallet!);
+    final (a, err) = await walletAddress.newAddress(bdkWallet: walletBloc.state.bdkWallet!);
 
     if (err != null)
       emit(

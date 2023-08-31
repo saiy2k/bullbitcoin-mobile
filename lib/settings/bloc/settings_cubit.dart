@@ -120,15 +120,23 @@ class SettingsCubit extends Cubit<SettingsState> {
       if (crc != null) crc,
       if (inr != null) inr,
     ];
-
-    emit(
-      state.copyWith(
-        currency: results.first,
-        currencyList: results,
-        loadingCurrency: false,
-        lastUpdatedCurrency: DateTime.now(),
-      ),
-    );
+    if (results.isEmpty) {
+      emit(
+        state.copyWith(
+          errLoadingCurrency: 'Could not load Currency info',
+          loadingCurrency: false,
+        ),
+      );
+      return;
+    } else
+      emit(
+        state.copyWith(
+          currency: results.first,
+          currencyList: results,
+          loadingCurrency: false,
+          lastUpdatedCurrency: DateTime.now(),
+        ),
+      );
 
     if (state.currency != null) {
       final currency = results.firstWhere((element) => element.name == state.currency!.name);

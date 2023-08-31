@@ -33,7 +33,7 @@ class BullBitcoinAPI {
         },
       );
       if (resp.statusCode == null || resp.statusCode != 200) {
-        throw 'Error Occured.';
+        return (null, Err(resp.toString(), expected: true));
       }
       final data = resp.data as Map<String, dynamic>;
       final result = data['result'] as Map<String, dynamic>;
