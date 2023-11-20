@@ -12,6 +12,17 @@ import 'transaction_test.data.dart';
 ///  2 unconfirmed and 1 confirmed local txns; same from bdk
 ///  2 unconfirmed and 1 confirmed local txns, 2 confirmed and 1 unconfirmed from bdk
 ///  2 unconfirmed and 1 confirmed local txns, 3 confirmed from bdk
+///
+///  -> Test for known exceptions
+///  -> Test for wallet.transactions[i].bdkTxn == bdkWallet.listTransactions(true)[i]
+///  -> Test for outAddress?
+///  -> Test for psbt?
+///  Output Address - Type
+///
+///  New test suits for
+///  -> buildTx()
+///  -> finalizeTx()
+///  -> broadcastTxWithWallet()
 void main() {
   group('getTransaction()', () {
     test('should sync 3 txns from bdk', () async {
