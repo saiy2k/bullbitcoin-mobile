@@ -1,6 +1,7 @@
 import 'package:bb_mobile/_model/address.dart';
 import 'package:bb_mobile/_model/seed.dart';
 import 'package:bb_mobile/_model/wallet.dart';
+import 'package:bb_mobile/_pkg/error.dart';
 
 Wallet getTestWallet(BBNetwork network, ScriptType script, bool hasImported) {
   if (network == BBNetwork.Mainnet) {
@@ -10,7 +11,8 @@ Wallet getTestWallet(BBNetwork network, ScriptType script, bool hasImported) {
           mnemonicFingerprint: '22877153',
           sourceFingerprint: '6c0c85c3',
           network: network,
-          type: hasImported ? BBWalletType.words : BBWalletType.newSeed,
+          // type: hasImported ? BBWalletType.words : BBWalletType.newSeed,
+          type: BBWalletType.words,
           scriptType: ScriptType.bip44,
           id: 'f49628b4ae40',
           name: (hasImported ? 'Imported' : 'Bull Wallet') + ':f4962',
@@ -163,3 +165,11 @@ const Seed seed1Data = Seed(
 );
 
 const String seed1Fingerprint = '6c0c85c3';
+
+Err getFingerPrintEmptyStringErr({num wordCount = 0}) {
+  return Err(
+    'mnemonic has an invalid word count: $wordCount. Word count must be 12, 15, 18, 21, or 24',
+    title: 'Error occurred while creating fingerprint',
+    solution: 'Please try again.',
+  );
+}

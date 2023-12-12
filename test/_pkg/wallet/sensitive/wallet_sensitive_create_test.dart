@@ -1,6 +1,5 @@
 import 'package:bb_mobile/_model/seed.dart';
 import 'package:bb_mobile/_model/wallet.dart';
-import 'package:bb_mobile/_pkg/error.dart';
 import 'package:bb_mobile/_pkg/logger.dart';
 import 'package:bb_mobile/_pkg/wallet/sensitive/create.dart';
 import 'package:flutter/cupertino.dart';
@@ -120,15 +119,11 @@ void main() {
       const mnemonic = '';
       final (fingerprint, fpError) = await wallet.getFingerprint(mnemonic: mnemonic);
 
+      final expectedErr = getFingerPrintEmptyStringErr();
       expect(fingerprint, isNull);
-      expect(fpError?.title, equals('Error occurred while creating fingerprint'));
-      expect(
-        fpError?.message,
-        equals(
-          'mnemonic has an invalid word count: 0. Word count must be 12, 15, 18, 21, or 24',
-        ),
-      );
-      expect(fpError?.solution, equals('Please try again.'));
+      expect(fpError?.title, equals(expectedErr.title));
+      expect(fpError?.message, equals(expectedErr.message));
+      expect(fpError?.solution, equals(expectedErr.solution));
     });
 
     test('throw an error when 11 word mnemonic is sent', () async {
@@ -138,13 +133,11 @@ void main() {
       final (fingerprint, fpError) =
           await wallet.getFingerprint(mnemonic: mnemonic, passphrase: passphrase);
 
+      final expectedErr = getFingerPrintEmptyStringErr(wordCount: 11);
       expect(fingerprint, isNull);
-      expect(
-        fpError.toString(),
-        Err(
-          'GenericException( mnemonic has an invalid word count: 11. Word count must be 12, 15, 18, 21, or 24 )',
-        ).toString(),
-      );
+      expect(fpError?.title, equals(expectedErr.title));
+      expect(fpError?.message, equals(expectedErr.message));
+      expect(fpError?.solution, equals(expectedErr.solution));
     });
 
     test('should return a fingerprint', () async {
@@ -284,112 +277,112 @@ void main() {
   });
 
   // TODO: Handle exception cases
+  // allFromBIP39() is only used for wallet import and not wallet creation.
+  // Hence, only testing for imported words.
   group('allFromBIP39()', () {
-    for (var j = 0; j < 2; j++) {
-      final hasImported = j == 0;
+    const hasImported = true;
 
-      for (var k = 0; k < 2; k++) {
-        final network = k == 0 ? BBNetwork.Mainnet : BBNetwork.Testnet;
+    for (var k = 0; k < 2; k++) {
+      final network = k == 0 ? BBNetwork.Mainnet : BBNetwork.Testnet;
 
-        test(
-            'should return all (44, 49, 84) ${network == BBNetwork.Mainnet ? 'Mainnet' : 'Testnet'} wallet for ${hasImported ? 'imported words' : 'new seed'}',
-            () async {
-          final create = WalletSensitiveCreate();
-          final mnemonic = seed1Data.mnemonic;
-          final passphrase = seed1Data.passphrases[0].passphrase;
+      test(
+          'should return all (44, 49, 84) ${network == BBNetwork.Mainnet ? 'Mainnet' : 'Testnet'} wallet for ${hasImported ? 'imported words' : 'new seed'}',
+          () async {
+        final create = WalletSensitiveCreate();
+        final mnemonic = seed1Data.mnemonic;
+        final passphrase = seed1Data.passphrases[0].passphrase;
 
-          final (wallets, walletError) =
-              await create.allFromBIP39(mnemonic, passphrase, network, hasImported);
+        final (wallets, walletError) =
+            await create.allFromBIP39(mnemonic, passphrase, network, hasImported);
 
-          expect(walletError, isNull);
+        expect(walletError, isNull);
 
-          // print('wallet: $wallets');
-          final Wallet testWallet44 = getTestWallet(network, ScriptType.bip44, hasImported);
-          final Wallet testWallet49 = getTestWallet(network, ScriptType.bip49, hasImported);
-          final Wallet testWallet84 = getTestWallet(network, ScriptType.bip84, hasImported);
-          final List<Wallet> testWallets = [
-            testWallet44,
-            testWallet49,
-            testWallet84,
-          ];
+        // print('wallet: $wallets');
+        final Wallet testWallet44 = getTestWallet(network, ScriptType.bip44, hasImported);
+        final Wallet testWallet49 = getTestWallet(network, ScriptType.bip49, hasImported);
+        final Wallet testWallet84 = getTestWallet(network, ScriptType.bip84, hasImported);
+        final List<Wallet> testWallets = [
+          testWallet44,
+          testWallet49,
+          testWallet84,
+        ];
 
-          for (var i = 0; i < 3; i++) {
-            expect(wallets?[i].id, equals(testWallets[i].id));
-            expect(
-              wallets?[i].externalPublicDescriptor,
-              equals(
-                testWallets[i].externalPublicDescriptor,
-              ),
-            );
-            expect(
-              wallets?[i].internalPublicDescriptor,
-              equals(
-                testWallets[i].internalPublicDescriptor,
-              ),
-            );
-            expect(wallets?[i].mnemonicFingerprint, equals(testWallets[i].mnemonicFingerprint));
-            expect(wallets?[i].sourceFingerprint, equals(testWallets[i].sourceFingerprint));
-            expect(wallets?[i].network, equals(testWallets[i].network));
-            expect(wallets?[i].type, equals(testWallets[i].type));
-            expect(wallets?[i].scriptType, equals(testWallets[i].scriptType));
-            expect(wallets?[i].name, equals(testWallets[i].name));
-            expect(wallets?[i].path, testWallets[i].path);
-            expect(wallets?[i].balance, testWallets[i].balance);
-            expect(wallets?[i].fullBalance, testWallets[i].fullBalance);
-            expect(
-              wallets?[i].lastGeneratedAddress?.address,
-              equals(testWallets[i].lastGeneratedAddress?.address),
-            );
-            expect(
-              wallets?[i].lastGeneratedAddress?.index,
-              equals(testWallets[i].lastGeneratedAddress?.index),
-            );
-            expect(
-              wallets?[i].lastGeneratedAddress?.kind,
-              equals(testWallets[i].lastGeneratedAddress?.kind),
-            );
-            expect(
-              wallets?[i].lastGeneratedAddress?.state,
-              equals(testWallets[i].lastGeneratedAddress?.state),
-            );
-            expect(
-              wallets?[i].lastGeneratedAddress?.label,
-              testWallets[i].lastGeneratedAddress?.label,
-            );
-            expect(
-              wallets?[i].lastGeneratedAddress?.spentTxId,
-              testWallets[i].lastGeneratedAddress?.spentTxId,
-            );
-            expect(
-              wallets?[i].lastGeneratedAddress?.spendable,
-              testWallets[i].lastGeneratedAddress?.spendable,
-            );
-            expect(
-              wallets?[i].lastGeneratedAddress?.saving,
-              testWallets[i].lastGeneratedAddress?.saving,
-            );
-            expect(
-              wallets?[i].lastGeneratedAddress?.errSaving,
-              equals(testWallets[i].lastGeneratedAddress?.errSaving),
-            );
-            expect(
-              wallets?[i].lastGeneratedAddress?.highestPreviousBalance,
-              equals(testWallets[i].lastGeneratedAddress?.highestPreviousBalance),
-            );
-            expect(
-              wallets?[i].lastGeneratedAddress?.utxos,
-              testWallets[i].lastGeneratedAddress?.utxos,
-            );
-            expect(wallets?[i].myAddressBook, testWallets[i].myAddressBook);
-            expect(wallets?[i].externalAddressBook, testWallets[i].externalAddressBook);
-            expect(wallets?[i].transactions, testWallets[i].transactions);
-            expect(wallets?[i].unsignedTxs, testWallets[i].unsignedTxs);
-            expect(wallets?[i].backupTested, testWallets[i].backupTested);
-            expect(wallets?[i].lastBackupTested, testWallets[i].lastBackupTested);
-            expect(wallets?[i].hide, testWallets[i].hide);
-          }
-        });
-      }
+        for (var i = 0; i < 3; i++) {
+          expect(wallets?[i].id, equals(testWallets[i].id));
+          expect(
+            wallets?[i].externalPublicDescriptor,
+            equals(
+              testWallets[i].externalPublicDescriptor,
+            ),
+          );
+          expect(
+            wallets?[i].internalPublicDescriptor,
+            equals(
+              testWallets[i].internalPublicDescriptor,
+            ),
+          );
+          expect(wallets?[i].mnemonicFingerprint, equals(testWallets[i].mnemonicFingerprint));
+          expect(wallets?[i].sourceFingerprint, equals(testWallets[i].sourceFingerprint));
+          expect(wallets?[i].network, equals(testWallets[i].network));
+          expect(wallets?[i].type, equals(testWallets[i].type));
+          expect(wallets?[i].scriptType, equals(testWallets[i].scriptType));
+          expect(wallets?[i].name, equals(testWallets[i].name));
+          expect(wallets?[i].path, testWallets[i].path);
+          expect(wallets?[i].balance, testWallets[i].balance);
+          expect(wallets?[i].fullBalance, testWallets[i].fullBalance);
+          expect(
+            wallets?[i].lastGeneratedAddress?.address,
+            equals(testWallets[i].lastGeneratedAddress?.address),
+          );
+          expect(
+            wallets?[i].lastGeneratedAddress?.index,
+            equals(testWallets[i].lastGeneratedAddress?.index),
+          );
+          expect(
+            wallets?[i].lastGeneratedAddress?.kind,
+            equals(testWallets[i].lastGeneratedAddress?.kind),
+          );
+          expect(
+            wallets?[i].lastGeneratedAddress?.state,
+            equals(testWallets[i].lastGeneratedAddress?.state),
+          );
+          expect(
+            wallets?[i].lastGeneratedAddress?.label,
+            testWallets[i].lastGeneratedAddress?.label,
+          );
+          expect(
+            wallets?[i].lastGeneratedAddress?.spentTxId,
+            testWallets[i].lastGeneratedAddress?.spentTxId,
+          );
+          expect(
+            wallets?[i].lastGeneratedAddress?.spendable,
+            testWallets[i].lastGeneratedAddress?.spendable,
+          );
+          expect(
+            wallets?[i].lastGeneratedAddress?.saving,
+            testWallets[i].lastGeneratedAddress?.saving,
+          );
+          expect(
+            wallets?[i].lastGeneratedAddress?.errSaving,
+            equals(testWallets[i].lastGeneratedAddress?.errSaving),
+          );
+          expect(
+            wallets?[i].lastGeneratedAddress?.highestPreviousBalance,
+            equals(testWallets[i].lastGeneratedAddress?.highestPreviousBalance),
+          );
+          expect(
+            wallets?[i].lastGeneratedAddress?.utxos,
+            testWallets[i].lastGeneratedAddress?.utxos,
+          );
+          expect(wallets?[i].myAddressBook, testWallets[i].myAddressBook);
+          expect(wallets?[i].externalAddressBook, testWallets[i].externalAddressBook);
+          expect(wallets?[i].transactions, testWallets[i].transactions);
+          expect(wallets?[i].unsignedTxs, testWallets[i].unsignedTxs);
+          expect(wallets?[i].backupTested, testWallets[i].backupTested);
+          expect(wallets?[i].lastBackupTested, testWallets[i].lastBackupTested);
+          expect(wallets?[i].hide, testWallets[i].hide);
+        }
+      });
     }
   });
 }

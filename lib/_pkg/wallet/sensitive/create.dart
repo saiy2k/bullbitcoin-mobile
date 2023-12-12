@@ -88,6 +88,10 @@ class WalletSensitiveCreate {
     }
   }
 
+  // TODO:
+  // isImported will always be true. This function won't be called while creating a wallet, in line with the app user flow.
+  // So `type` will always be `BBWalletType.words`
+  // In future, this can be changed.
   Future<(List<Wallet>?, Err?)> allFromBIP39(
     String mnemonic,
     String passphrase,
