@@ -121,11 +121,14 @@ void main() {
       final (fingerprint, fpError) = await wallet.getFingerprint(mnemonic: mnemonic);
 
       expect(fingerprint, isNull);
+      expect(fpError?.title, equals('Error occurred while creating fingerprint'));
       expect(
-        fpError.toString(),
-        Err('GenericException( mnemonic has an invalid word count: 0. Word count must be 12, 15, 18, 21, or 24 )')
-            .toString(),
+        fpError?.message,
+        equals(
+          'mnemonic has an invalid word count: 0. Word count must be 12, 15, 18, 21, or 24',
+        ),
       );
+      expect(fpError?.solution, equals('Please try again.'));
     });
 
     test('throw an error when 11 word mnemonic is sent', () async {
