@@ -94,177 +94,96 @@ void main() {
       ],
     );
 
-    // 1) [createPin] enter pin with bakcspace(s).
-    // 2) [confirmPin :: invalid] look for error: 'Security Pins must match.'
-    // 3) [confirmPin :: invalid] with backspace(s). look for error: 'Security Pins must match.'
-    // 4) [confirmPin :: valid] with backspace(s). LoggedIn becomes true
+    // 1. [createPin] enter pin with bakcspace(s).
+    // 2. [confirmPin :: invalid] look for error: 'Security Pins must match.'
+    // 3. [confirmPin :: invalid] with backspace(s). look for error: 'Security Pins must match.'
+    // 4. [confirmPin :: valid] with backspace(s). LoggedIn becomes true
     blocTest<AuthCubit, AuthState>(
       'createPin flow (create, confirm :: invalid, confirm :: invalid and confirm :: valid):',
       build: () => authCubit,
       act: (cubit) async {
-        // TODO: Made this line, just to make the test run. Have to investigate into 'initial conditions' properly.
-        cubit.emit(
-          const AuthState(
-            step: SecurityStep.createPin,
-          ),
-        );
-        cubit.keyPressed('1');
-        cubit.keyPressed('2');
-        cubit.keyPressed('3');
-        cubit.keyPressed('4');
-        cubit.keyPressed('4');
+        // Set initial state for creating a PIN
+        cubit.emit(const AuthState(step: SecurityStep.createPin));
+
+        // Function to simulate key presses
+        void simulateKeyPresses(List<String> keys) {
+          for (final key in keys) {
+            cubit.keyPressed(key);
+          }
+        }
+
+        // 1. Create PIN
+        simulateKeyPresses(['1', '2', '3', '4', '4']);
         cubit.backspacePressed();
         await cubit.confirmPressed();
-        cubit.keyPressed('1');
-        cubit.keyPressed('2');
-        cubit.keyPressed('3');
+
+        // 2. Invalid confirmation (mismatch)
+        simulateKeyPresses(['1', '2', '3']);
         await cubit.confirmPressed();
-        cubit.keyPressed('1');
-        cubit.keyPressed('2');
-        cubit.keyPressed('3');
-        cubit.keyPressed('3');
-        cubit.keyPressed('4');
+
+        // 3. Invalid confirmation (mismatch)
+        simulateKeyPresses(['1', '2', '3', '3', '4']);
         cubit.backspacePressed();
         await cubit.confirmPressed();
-        cubit.keyPressed('1');
-        cubit.keyPressed('2');
-        cubit.keyPressed('3');
-        cubit.keyPressed('4');
-        cubit.keyPressed('5');
+
+        // 4. Valid confirmation
+        simulateKeyPresses(['1', '2', '3', '4', '5']);
         cubit.backspacePressed();
         await cubit.confirmPressed();
       },
       skip: 1,
-      expect: () => [
-        const AuthState(
-          step: SecurityStep.createPin,
-          pin: '1',
-        ),
-        const AuthState(
-          step: SecurityStep.createPin,
-          pin: '12',
-        ),
-        const AuthState(
-          step: SecurityStep.createPin,
-          pin: '123',
-        ),
-        const AuthState(
-          step: SecurityStep.createPin,
-          pin: '1234',
-        ),
-        const AuthState(
-          step: SecurityStep.createPin,
-          pin: '12344',
-        ),
-        const AuthState(
-          step: SecurityStep.createPin,
-          pin: '1234',
-        ),
-        const AuthState(
-          step: SecurityStep.confirmPin,
-          pin: '1234',
-        ),
-        const AuthState(
-          step: SecurityStep.confirmPin,
-          pin: '1234',
-          confirmPin: '1',
-        ),
-        const AuthState(
-          step: SecurityStep.confirmPin,
-          pin: '1234',
-          confirmPin: '12',
-        ),
-        const AuthState(
-          step: SecurityStep.confirmPin,
-          pin: '1234',
-          confirmPin: '123',
-        ),
-        const AuthState(
-          step: SecurityStep.confirmPin,
-          pin: '1234',
-          err: 'Security Pins must match.',
-        ),
-        const AuthState(
-          step: SecurityStep.confirmPin,
-          pin: '1234',
-        ),
-        const AuthState(
-          step: SecurityStep.confirmPin,
-          pin: '1234',
-          confirmPin: '1',
-        ),
-        const AuthState(
-          step: SecurityStep.confirmPin,
-          pin: '1234',
-          confirmPin: '12',
-        ),
-        const AuthState(
-          step: SecurityStep.confirmPin,
-          pin: '1234',
-          confirmPin: '123',
-        ),
-        const AuthState(
-          step: SecurityStep.confirmPin,
-          pin: '1234',
-          confirmPin: '1233',
-        ),
-        const AuthState(
-          step: SecurityStep.confirmPin,
-          pin: '1234',
-          confirmPin: '12334',
-        ),
-        const AuthState(
-          step: SecurityStep.confirmPin,
-          pin: '1234',
-          confirmPin: '1233',
-        ),
-        const AuthState(
-          step: SecurityStep.confirmPin,
-          pin: '1234',
-          err: 'Security Pins must match.',
-        ),
-        const AuthState(
-          step: SecurityStep.confirmPin,
-          pin: '1234',
-        ),
-        const AuthState(
-          step: SecurityStep.confirmPin,
-          pin: '1234',
-          confirmPin: '1',
-        ),
-        const AuthState(
-          step: SecurityStep.confirmPin,
-          pin: '1234',
-          confirmPin: '12',
-        ),
-        const AuthState(
-          step: SecurityStep.confirmPin,
-          pin: '1234',
-          confirmPin: '123',
-        ),
-        const AuthState(
-          step: SecurityStep.confirmPin,
-          pin: '1234',
-          confirmPin: '1234',
-        ),
-        const AuthState(
-          step: SecurityStep.confirmPin,
-          pin: '1234',
-          confirmPin: '12345',
-        ),
-        const AuthState(
-          step: SecurityStep.confirmPin,
-          pin: '1234',
-          confirmPin: '1234',
-        ),
-        const AuthState(
-          step: SecurityStep.confirmPin,
-          pin: '1234',
-          confirmPin: '1234',
-          checking: false,
-          loggedIn: true,
-        ),
-      ],
+      expect: () {
+        return [
+          // 1. Create PIN
+          const AuthState(step: SecurityStep.createPin, pin: '1'),
+          const AuthState(step: SecurityStep.createPin, pin: '12'),
+          const AuthState(step: SecurityStep.createPin, pin: '123'),
+          const AuthState(step: SecurityStep.createPin, pin: '1234'),
+          const AuthState(step: SecurityStep.createPin, pin: '12344'),
+          const AuthState(step: SecurityStep.createPin, pin: '1234'),
+          const AuthState(step: SecurityStep.confirmPin, pin: '1234'),
+
+          // 2. Invalid confirmation (mismatch)
+          const AuthState(step: SecurityStep.confirmPin, pin: '1234', confirmPin: '1'),
+          const AuthState(step: SecurityStep.confirmPin, pin: '1234', confirmPin: '12'),
+          const AuthState(step: SecurityStep.confirmPin, pin: '1234', confirmPin: '123'),
+          const AuthState(
+            step: SecurityStep.confirmPin,
+            pin: '1234',
+            err: 'Security Pins must match.',
+          ),
+
+          // 3. Invalid confirmation (mismatch)
+          const AuthState(step: SecurityStep.confirmPin, pin: '1234'),
+          const AuthState(step: SecurityStep.confirmPin, pin: '1234', confirmPin: '1'),
+          const AuthState(step: SecurityStep.confirmPin, pin: '1234', confirmPin: '12'),
+          const AuthState(step: SecurityStep.confirmPin, pin: '1234', confirmPin: '123'),
+          const AuthState(step: SecurityStep.confirmPin, pin: '1234', confirmPin: '1233'),
+          const AuthState(step: SecurityStep.confirmPin, pin: '1234', confirmPin: '12334'),
+          const AuthState(step: SecurityStep.confirmPin, pin: '1234', confirmPin: '1233'),
+          const AuthState(
+            step: SecurityStep.confirmPin,
+            pin: '1234',
+            err: 'Security Pins must match.',
+          ),
+
+          // 4. Valid confirmation
+          const AuthState(step: SecurityStep.confirmPin, pin: '1234'),
+          const AuthState(step: SecurityStep.confirmPin, pin: '1234', confirmPin: '1'),
+          const AuthState(step: SecurityStep.confirmPin, pin: '1234', confirmPin: '12'),
+          const AuthState(step: SecurityStep.confirmPin, pin: '1234', confirmPin: '123'),
+          const AuthState(step: SecurityStep.confirmPin, pin: '1234', confirmPin: '1234'),
+          const AuthState(step: SecurityStep.confirmPin, pin: '1234', confirmPin: '12345'),
+          const AuthState(step: SecurityStep.confirmPin, pin: '1234', confirmPin: '1234'),
+          const AuthState(
+            step: SecurityStep.confirmPin,
+            pin: '1234',
+            confirmPin: '1234',
+            checking: false,
+            loggedIn: true,
+          ),
+        ];
+      },
     );
 
     // 1) [createPin]
